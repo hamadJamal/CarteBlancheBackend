@@ -24,15 +24,28 @@ const Post = require("../models/CreateUserModel");
 //Post a JSON object
 router.post("/register", async (req, res) => {
   const Data = req.body;
-  const post = new Post({
-    Username: Data.Username,
-    Email: Data.Email,
-    Password: Data.Password,
-    Tasks: Data.Tasks,
-  });
+
   try {
-    const SavedPost = await post.save();
-    res.json(SavedPost);
+    const userExist = await Post.findOne({
+      Username: Data.Username,
+    });
+
+    if (userExist) {
+      res.json({ exists: true });
+    } else {
+      const post = new Post({
+        Username: Data.Username,
+        Email: Data.Email,
+        Password: Data.Password,
+        Tasks: Data.Tasks,
+      });
+      try {
+        const SavedPost = await post.save();
+        res.json(SavedPost);
+      } catch (err) {
+        res.json({ message: err });
+      }
+    }
   } catch (err) {
     res.json({ message: err });
   }
@@ -68,6 +81,44 @@ router.post("/tasks", async (req, res) => {
     });
 
     res.json({ tasks: userData.Tasks });
+  } catch (err) {
+    res.json({ message: err });
+  }
+});
+
+router.post("/tasks/edit", async (req, res) => {
+  const Data = req.body;
+  const Task = Data.Task;
+
+  try {
+    const userData = await Post.findOne({
+      Username: Data.Username,
+    });
+
+    const Tasks = userData.Tasks;
+    let newTasks = [];
+
+    Tasks.forEach((element) => {
+      if (element.id == Task.id) {
+        newTasks.push(Task);
+      } else {
+        newTasks.push(element);
+      }
+    });
+
+    try {
+      const updatedPost = await Post.updateOne(
+        { Username: Data.Username },
+        {
+          $set: {
+            Tasks: newTasks,
+          },
+        }
+      );
+      res.json(updatedPost);
+    } catch (err) {
+      res.json({ message: err });
+    }
   } catch (err) {
     res.json({ message: err });
   }
